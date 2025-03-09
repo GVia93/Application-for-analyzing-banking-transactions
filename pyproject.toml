@@ -6,16 +6,19 @@ authors = [
     {name = "gvia",email = "gritcaev.vv@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-]
+
+[tool.poetry.dependencies]
+python = "^3.13"
+python-dotenv = "^1.0.1"
+pandas = "^2.2.3"
+openpyxl = "^3.1.5"
 
 
 [tool.poetry.group.lint.dependencies]
 flake8 = "^7.1.1"
 mypy = "^1.14.1"
 black = "^24.10.0"
-isort = "^5.13.2"
+isort = "^6.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
