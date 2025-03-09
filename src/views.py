@@ -19,7 +19,7 @@ logger.addHandler(file_handler)
 load_dotenv(".env")
 
 
-def home_page(data) -> str:
+def home_page(df: pd.DataFrame) -> str | None:
     """
     Формирует и возвращает данные домашней страницы в формате JSON.
 
@@ -30,21 +30,25 @@ def home_page(data) -> str:
     4. Загружает пользовательские настройки и получает курсы валют и цены акций.
     5. Возвращает итоговый результат в формате JSON.
     """
-    greeting = get_greeting()
-    card_summary = get_card_summary(data)
-    top_transactions = get_top_transactions(data)
+    try:
+        greeting = get_greeting()
+        card_summary = get_card_summary(df)
+        top_transactions = get_top_transactions(df)
 
-    user_settings = load_user_settings("user_settings.json")
-    currency_rates = get_currency_rates(user_settings.get("user_currencies"))
-    stock_prices = get_stock_prices(user_settings.get("user_stocks"))
-    result = {
-        "greeting": greeting,
-        "cards": card_summary,
-        "top_transactions": top_transactions,
-        "currency_rates": currency_rates,
-        "stock_prices": stock_prices,
-    }
-    return json.dumps(result, ensure_ascii=False, indent=2)
+        user_settings = load_user_settings("user_settings.json")
+        currency_rates = get_currency_rates(user_settings.get("user_currencies"))
+        stock_prices = get_stock_prices(user_settings.get("user_stocks"))
+        result = {
+            "greeting": greeting,
+            "cards": card_summary,
+            "top_transactions": top_transactions,
+            "currency_rates": currency_rates,
+            "stock_prices": stock_prices,
+        }
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка формирования JSON: {e}")
+        return None
 
 
 def get_greeting() -> str:
@@ -60,12 +64,11 @@ def get_greeting() -> str:
         return "Доброй ночи"
 
 
-def get_card_summary(data: list) -> list | dict:
+def get_card_summary(df: pd.DataFrame) -> list | dict:
     """
     Создает сводку расходов по номерам карт.
     """
     try:
-        df = pd.DataFrame(data)
         df["Номер карты"] = df["Номер карты"].astype(str).str[-4:]
         df = df[df["Сумма операции"] < 0]
         summary = df.groupby("Номер карты")["Сумма операции"].sum().abs()
@@ -78,12 +81,11 @@ def get_card_summary(data: list) -> list | dict:
         return {}
 
 
-def get_top_transactions(data: list) -> list | dict:
+def get_top_transactions(df: pd.DataFrame) -> list | dict:
     """
     Функция возвращает топ 5 транзакций.
     """
     try:
-        df = pd.DataFrame(data)
         top_transactions = df.nlargest(5, "Сумма операции")
         return [
             {

@@ -42,11 +42,11 @@ def save_report(filename: Optional[str] = None):
 
 
 @save_report()
-def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
+def spending_by_category(df: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
     """
     Возвращает DataFrame с тратами по заданной категории за последние три месяца.
 
-    :param transactions: DataFrame с транзакциями.
+    :param df: DataFrame с транзакциями.
     :param category: Название категории транзакций.
     :param date: Опциональная дата в формате 'DD.MM.YYYY'. Если не указана, берется текущая дата.
     :return: DataFrame с тратами по категории за последние три месяца.
@@ -54,15 +54,13 @@ def spending_by_category(transactions: pd.DataFrame, category: str, date: Option
     try:
         end_date = datetime.strptime(date, "%d.%m.%Y") if date else datetime.today()
         start_date = end_date - timedelta(days=90)
-        transactions["Дата операции"] = pd.to_datetime(
-            transactions["Дата операции"], format="%d.%m.%Y %H:%M:%S", errors="coerce"
-        )
-        transactions["Сумма операции"] = transactions["Сумма операции"].astype(str).str.replace(",", ".").astype(float)
-        filtered_df = transactions[
-            (transactions["Категория"] == category)
-            & (transactions["Дата операции"] >= start_date)
-            & (transactions["Дата операции"] <= end_date)
-            & (transactions["Сумма операции"] < 0)
+        df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%d.%m.%Y %H:%M:%S", errors="coerce")
+        df["Сумма операции"] = df["Сумма операции"].astype(str).str.replace(",", ".").astype(float)
+        filtered_df = df[
+            (df["Категория"] == category)
+            & (df["Дата операции"] >= start_date)
+            & (df["Дата операции"] <= end_date)
+            & (df["Сумма операции"] < 0)
         ]
 
         return filtered_df.reset_index(drop=True)
