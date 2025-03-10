@@ -23,7 +23,7 @@ def file_reader(file_path: str = "") -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def load_user_settings(file_path: str = "") -> dict:
+def load_user_settings(file_path: str = "") -> list:
     """
     Загрузка пользовательских настроек из JSON
     """
@@ -32,4 +32,4 @@ def load_user_settings(file_path: str = "") -> dict:
             return json.load(f)
     except Exception as e:
         logger.error(f"Ошибка загрузки user_settings.json: {e}")
-        return {}
+        return []
