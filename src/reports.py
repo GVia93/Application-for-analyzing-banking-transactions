@@ -53,6 +53,7 @@ def spending_by_category(df: pd.DataFrame, category: str, date: Optional[str] = 
     """
     try:
         end_date = datetime.strptime(date, "%d.%m.%Y") if date else datetime.today()
+        end_date = end_date.replace(hour=23, minute=59, second=59)
         start_date = end_date - timedelta(days=90)
         df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%d.%m.%Y %H:%M:%S", errors="coerce")
         df["Сумма операции"] = df["Сумма операции"].astype(str).str.replace(",", ".").astype(float)
