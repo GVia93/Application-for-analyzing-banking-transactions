@@ -35,3 +35,30 @@ def find_p2p_transfers(df: pd.DataFrame) -> str | None:
     except Exception as e:
         logger.error(f"Ошибка при поиске P2P переводов: {e}")
         return None
+
+
+def investment_bank(month: str, transactions: list[dict[str, any]], limit: int) -> float:
+    """
+    Рассчитывает сумму, которую можно отложить в "Инвесткопилку" за указанный месяц.
+
+    :param month: Месяц в формате 'YYYY.MM'.
+    :param transactions: Список транзакций с полями 'Дата операции' и 'Сумма операции'.
+    :param limit: Шаг округления (10, 50 или 100).
+    :return: Общая сумма, которая будет отложена в "Инвесткопилку".
+    """
+    try:
+        total_savings = 0.0
+
+        for transaction in transactions:
+            date = transaction.get("Дата операции")
+            amount = transaction.get("Сумма операции")
+
+            if date and amount and date.startswith(month) and amount < 0:
+                rounded = ((abs(amount) // limit) + 1) * limit
+                savings = rounded - abs(amount)
+                total_savings += savings
+
+        return round(total_savings, 2)
+    except Exception as e:
+        logging.error(f"Ошибка при расчете инвесткопилки: {e}")
+        return 0.0
