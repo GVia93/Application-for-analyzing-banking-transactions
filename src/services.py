@@ -37,6 +37,17 @@ def find_p2p_transfers(df: pd.DataFrame) -> str | None:
         return None
 
 
+def generate_transactions(df: pd.DataFrame) -> list:
+    """
+    Функция формирует список транзакций из DataFrame.
+    """
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%d.%m.%Y %H:%M:%S", errors="coerce")
+    df["Дата операции"] = df["Дата операции"].dt.strftime("%Y.%m.%d")
+    filtered_df = df[["Дата операции", "Сумма операции"]]
+    transactions = filtered_df.to_dict(orient="records")
+    return transactions
+
+
 def investment_bank(month: str, transactions: list[dict[str, any]], limit: int) -> float:
     """
     Рассчитывает сумму, которую можно отложить в "Инвесткопилку" за указанный месяц.
