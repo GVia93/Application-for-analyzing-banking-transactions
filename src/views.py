@@ -54,7 +54,7 @@ def summarize(df: pd.DataFrame, categories: list) -> list:
     return main
 
 
-def event_page(df: pd.DataFrame, date_str: str, range_type: str = "M") -> str:
+def event_page(df: pd.DataFrame, date_str: str, range_type: str = "M") -> str | None:
     """
     Формирует и возвращает данные страницы событий в формате JSON.
 
@@ -64,34 +64,38 @@ def event_page(df: pd.DataFrame, date_str: str, range_type: str = "M") -> str:
     3. Загружает пользовательские настройки и получает курсы валют и цены акций.
     4. Возвращает итоговый результат в формате JSON.
     """
-    df = filter_data_by_range(df, date_str, range_type)
+    try:
+        df = filter_data_by_range(df, date_str, range_type)
 
-    expenses = df[df["Сумма операции"] < 0]
-    income = df[df["Сумма операции"] > 0]
+        expenses = df[df["Сумма операции"] < 0]
+        income = df[df["Сумма операции"] > 0]
 
-    expenses_main = summarize(expenses, expenses["Категория"].unique()[:6])
-    transfers_cash = summarize(expenses, ["Переводы", "Наличные"])
-    income_main = summarize(income, income["Категория"].unique())
+        expenses_main = summarize(expenses, expenses["Категория"].unique()[:6])
+        transfers_cash = summarize(expenses, ["Переводы", "Наличные"])
+        income_main = summarize(income, income["Категория"].unique())
 
-    user_settings = load_user_settings("user_settings.json")
-    currency_rates = get_currency_rates(user_settings.get("user_currencies"))
-    stock_prices = get_stock_prices(user_settings.get("user_stocks"))
+        user_settings = load_user_settings("user_settings.json")
+        currency_rates = get_currency_rates(user_settings.get("user_currencies"))
+        stock_prices = get_stock_prices(user_settings.get("user_stocks"))
 
-    report = {
-        "expenses": {
-            "total_amount": round(abs(expenses["Сумма операции"].sum()), 2),
-            "main": expenses_main,
-            "transfers_and_cash": transfers_cash,
-        },
-        "income": {
-            "total_amount": round(income["Сумма операции"].sum(), 2),
-            "main": income_main,
-        },
-        "currency_rates": currency_rates,
-        "stock_prices": stock_prices,
-    }
+        report = {
+            "expenses": {
+                "total_amount": round(abs(expenses["Сумма операции"].sum()), 2),
+                "main": expenses_main,
+                "transfers_and_cash": transfers_cash,
+            },
+            "income": {
+                "total_amount": round(income["Сумма операции"].sum(), 2),
+                "main": income_main,
+            },
+            "currency_rates": currency_rates,
+            "stock_prices": stock_prices,
+        }
 
-    return json.dumps(report, ensure_ascii=False, indent=2)
+        return json.dumps(report, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Ошибка формирования JSON: {e}")
+        return None
 
 
 def home_page(df: pd.DataFrame) -> str | None:
