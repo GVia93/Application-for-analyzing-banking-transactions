@@ -73,3 +73,27 @@ def investment_bank(month: str, transactions: list[dict[str, any]], limit: int) 
     except Exception as e:
         logging.error(f"Ошибка при расчете инвесткопилки: {e}")
         return 0.0
+
+
+def analyze_profitable_cashback_categories(df: pd.DataFrame, year: int, month: int) -> str | list:
+    """
+    Анализирует выгодные категории повышенного кешбэка за указанный месяц и год.
+    """
+    try:
+        df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%d.%m.%Y %H:%M:%S", errors="coerce")
+        filtered = df[(df["Дата операции"].dt.year == year) & (df["Дата операции"].dt.month == month)]
+        filtered = filtered[filtered["Сумма операции"] < 0]
+        cashback_rate = 0.05
+        cashback_summary = (
+            filtered.groupby("Категория")["Сумма операции"]
+            .sum()
+            .abs()
+            .apply(lambda x: round(x * cashback_rate, 2))
+            .to_dict()
+        )
+
+        return json.dumps(cashback_summary, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        logger.error(f"Ошибка при анализе кешбэка: {e}")
+        return []
