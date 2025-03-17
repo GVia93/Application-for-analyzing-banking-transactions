@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 import requests
@@ -17,6 +17,81 @@ file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
 
 load_dotenv(".env")
+
+
+def filter_data_by_range(df: pd.DataFrame, date_str: str, range_type: str) -> pd.DataFrame:
+    """
+    Фильтрует данные DataFrame по заданному диапазону.
+    """
+    date = datetime.strptime(date_str, "%d.%m.%Y")
+    if range_type == "W":
+        start = date - timedelta(days=date.weekday())
+    elif range_type == "M":
+        start = date.replace(day=1)
+    elif range_type == "Y":
+        start = date.replace(month=1, day=1)
+    elif range_type == "ALL":
+        start = df["Дата операции"].min()
+    else:
+        start = date.replace(day=1)
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%d.%m.%Y %H:%M:%S", errors="coerce")
+    return df[(df["Дата операции"] >= start) & (df["Дата операции"] <= date)]
+
+
+def summarize(df: pd.DataFrame, categories: list) -> list:
+    """
+    Формирует сводку по категориям с суммами расходов или доходов.
+    """
+    summary = df.groupby("Категория")["Сумма операции"].sum().abs().sort_values(ascending=False)
+    main = [
+        {"category": category, "amount": round(amount, 2)}
+        for category, amount in summary.items()
+        if category in categories
+    ]
+    other = summary[~summary.index.isin(categories)].sum()
+    if other > 0:
+        main.append({"category": "Остальное", "amount": round(other, 2)})
+    return main
+
+
+def event_page(df: pd.DataFrame, date_str: str, range_type: str = "M") -> str:
+    """
+    Формирует и возвращает данные страницы событий в формате JSON.
+
+    Функция выполняет следующие действия:
+    1. Считывает данные операций из файла Excel.
+    2. Формирует сводку по категориям с суммами расходов или доходов.
+    3. Загружает пользовательские настройки и получает курсы валют и цены акций.
+    4. Возвращает итоговый результат в формате JSON.
+    """
+    df = filter_data_by_range(df, date_str, range_type)
+
+    expenses = df[df["Сумма операции"] < 0]
+    income = df[df["Сумма операции"] > 0]
+
+    expenses_main = summarize(expenses, expenses["Категория"].unique()[:6])
+    transfers_cash = summarize(expenses, ["Переводы", "Наличные"])
+    income_main = summarize(income, income["Категория"].unique())
+
+    user_settings = load_user_settings("user_settings.json")
+    currency_rates = get_currency_rates(user_settings.get("user_currencies"))
+    stock_prices = get_stock_prices(user_settings.get("user_stocks"))
+
+    report = {
+        "expenses": {
+            "total_amount": round(abs(expenses["Сумма операции"].sum()), 2),
+            "main": expenses_main,
+            "transfers_and_cash": transfers_cash,
+        },
+        "income": {
+            "total_amount": round(income["Сумма операции"].sum(), 2),
+            "main": income_main,
+        },
+        "currency_rates": currency_rates,
+        "stock_prices": stock_prices,
+    }
+
+    return json.dumps(report, ensure_ascii=False, indent=2)
 
 
 def home_page(df: pd.DataFrame) -> str | None:
